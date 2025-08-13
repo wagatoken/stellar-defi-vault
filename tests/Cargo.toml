@@ -1,0 +1,24 @@
+[package]
+name = "integration-tests"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+soroban-sdk = { workspace = true }
+soroban-token-sdk = { workspace = true }
+shared = { path = "../contracts/shared" }
+
+# For testing
+tokio = { version = "1.0", features = ["full"] }
+
+[[bin]]
+name = "test_yield_token"
+path = "src/test_yield_token.rs"
+
+[[bin]]
+name = "test_vaults"
+path = "src/test_vaults.rs"
+
+[[bin]]
+name = "test_governance"
+path = "src/test_governance.rs"

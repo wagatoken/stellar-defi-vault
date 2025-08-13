@@ -1,0 +1,20 @@
+{
+    "rust-analyzer.linkedProjects": [
+        "./Cargo.toml"
+    ],
+    "rust-analyzer.cargo.target": "wasm32-unknown-unknown",
+    "rust-analyzer.check.targets": [
+        "wasm32-unknown-unknown"
+    ],
+    "rust-analyzer.cargo.features": [],
+    "files.associations": {
+        "*.rs": "rust",
+        "Cargo.toml": "toml"
+    },
+    "editor.formatOnSave": true,
+    "rust-analyzer.hover.actions.enable": true,
+    "rust-analyzer.inlayHints.enable": true,
+    "terminal.integrated.env.osx": {
+        "RUST_BACKTRACE": "1"
+    }
+}

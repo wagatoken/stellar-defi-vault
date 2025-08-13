@@ -1,0 +1,12 @@
+/Users/manu-acho/foundry_2/stellar_vault/target/debug/deps/ecdsa-56f2d847889822dd.d: /Users/manu-acho/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecdsa-0.16.9/src/lib.rs /Users/manu-acho/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecdsa-0.16.9/src/normalized.rs /Users/manu-acho/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecdsa-0.16.9/src/recovery.rs /Users/manu-acho/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecdsa-0.16.9/src/der.rs /Users/manu-acho/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecdsa-0.16.9/src/hazmat.rs /Users/manu-acho/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecdsa-0.16.9/src/signing.rs /Users/manu-acho/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecdsa-0.16.9/src/verifying.rs /Users/manu-acho/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecdsa-0.16.9/src/../README.md
+
+/Users/manu-acho/foundry_2/stellar_vault/target/debug/deps/libecdsa-56f2d847889822dd.rmeta: /Users/manu-acho/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecdsa-0.16.9/src/lib.rs /Users/manu-acho/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecdsa-0.16.9/src/normalized.rs /Users/manu-acho/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecdsa-0.16.9/src/recovery.rs /Users/manu-acho/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecdsa-0.16.9/src/der.rs /Users/manu-acho/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecdsa-0.16.9/src/hazmat.rs /Users/manu-acho/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecdsa-0.16.9/src/signing.rs /Users/manu-acho/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecdsa-0.16.9/src/verifying.rs /Users/manu-acho/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecdsa-0.16.9/src/../README.md
+
+/Users/manu-acho/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecdsa-0.16.9/src/lib.rs:
+/Users/manu-acho/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecdsa-0.16.9/src/normalized.rs:
+/Users/manu-acho/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecdsa-0.16.9/src/recovery.rs:
+/Users/manu-acho/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecdsa-0.16.9/src/der.rs:
+/Users/manu-acho/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecdsa-0.16.9/src/hazmat.rs:
+/Users/manu-acho/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecdsa-0.16.9/src/signing.rs:
+/Users/manu-acho/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecdsa-0.16.9/src/verifying.rs:
+/Users/manu-acho/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecdsa-0.16.9/src/../README.md:

@@ -1,0 +1,15 @@
+[package]
+name = "yield-token"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+soroban-sdk = { workspace = true }
+soroban-token-sdk = { workspace = true }
+shared = { path = "../shared" }
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+testutils = ["soroban-sdk/testutils"]
