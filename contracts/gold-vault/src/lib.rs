@@ -1,6 +1,6 @@
 #![no_std]
 use shared::{
-    DepositInfo, LockPeriod, VaultType, PAXG_ASSET, STORAGE_INSTANCE_PERSISTENT, WISDOMTREE_GOLD,
+    DepositInfo, LockPeriod, VaultType,
 };
 use soroban_sdk::token::TokenClient;
 use soroban_sdk::{contract, contractimpl, log, symbol_short, Address, Env, IntoVal, Symbol, Vec};
@@ -86,11 +86,11 @@ impl GoldVault {
         // Create deposit info
         let vault_type = Self::determine_vault_type(&env, &gold_asset);
         let deposit_info = DepositInfo {
-            amount: usd_value, // Store as USD value for yield calculations
+            amount: usd_value,
             deposit_time: current_time,
             unlock_time,
             lock_period: lock_period.clone(),
-            vault_type,
+            vault_type: vault_type.clone(),
         };
 
         // Store deposit info with gold asset details
@@ -111,19 +111,17 @@ impl GoldVault {
         let yield_rate = Self::calculate_yield_rate(env.clone(), lock_period.clone());
         let yield_token_contract: Address = env.storage().instance().get(&YIELD_TOKEN).unwrap();
 
-        env.invoke_contract(
+        env.invoke_contract::<()>(
             &yield_token_contract,
             &Symbol::new(&env, "mint_for_deposit"),
             (
                 env.current_contract_address(),
                 user.clone(),
                 usd_value,
-                vault_type,
+                vault_type.clone(), // Explicitly clone here
                 yield_rate,
-            )
-                .into_val(&env),
+            ).into_val(&env),
         );
-
         log!(
             &env,
             "User {} deposited {} gold tokens (${} USD value) with {:?} lock period",
@@ -169,12 +167,11 @@ impl GoldVault {
         let yield_token_contract: Address = env.storage().instance().get(&YIELD_TOKEN).unwrap();
 
         // Compound interest first
-        env.invoke_contract(
+        env.invoke_contract::<()>(
             &yield_token_contract,
             &Symbol::new(&env, "compound_interest"),
             (user.clone(),).into_val(&env),
         );
-
         // Get final USD balance from yield token
         let final_usd_amount: i128 = env.invoke_contract(
             &yield_token_contract,
@@ -194,15 +191,14 @@ impl GoldVault {
         };
 
         // Burn yield tokens
-        env.invoke_contract(
+        env.invoke_contract::<()>(
             &yield_token_contract,
             &Symbol::new(&env, "burn_for_withdrawal"),
             (
                 env.current_contract_address(),
                 user.clone(),
                 withdrawal_usd_value,
-            )
-                .into_val(&env),
+            ).into_val(&env),
         );
 
         // Transfer gold tokens back to user
@@ -285,7 +281,7 @@ impl GoldVault {
     }
 
     /// Calculate yield rate based on lock period (same as USDC vault)
-    pub fn calculate_yield_rate(env: Env, lock_period: LockPeriod) -> u128 {
+    pub fn calculate_yield_rate(_env: Env, lock_period: LockPeriod) -> u128 {
         let base_rate = 500u128; // 5% base annual rate in basis points
 
         match lock_period {
@@ -358,7 +354,7 @@ impl GoldVault {
             .unwrap_or(Vec::new(env));
 
         if let Some(first_asset) = supported_assets.first() {
-            asset == first_asset.clone()
+            *asset == first_asset.clone()
         } else {
             false
         }

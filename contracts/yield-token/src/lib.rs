@@ -1,8 +1,8 @@
 #![no_std]
-use shared::{UserYieldInfo, VaultType, REBASE_INTERVAL, STORAGE_INSTANCE_PERSISTENT};
+use shared::{UserYieldInfo, VaultType, REBASE_INTERVAL};
 use soroban_sdk::token::TokenInterface;
 use soroban_sdk::{
-    contract, contractimpl, log, symbol_short, Address, Env, IntoVal, String, Symbol,
+    contract, contractimpl, log, symbol_short, Address, Env, String, Symbol,
 };
 use soroban_token_sdk::metadata::TokenMetadata;
 
@@ -89,7 +89,7 @@ impl YieldToken {
         vault_contract: Address,
         user: Address,
         amount: u128,
-        vault_type: VaultType,
+        _vault_type: VaultType,
         yield_rate: u128,
     ) {
         vault_contract.require_auth();
@@ -172,7 +172,7 @@ impl YieldToken {
 
     /// Calculate compound yield using simplified formula
     fn calculate_compound_yield(
-        env: &Env,
+        _env: &Env,
         principal: u128,
         annual_rate: u128,
         time_elapsed: u64,
@@ -220,12 +220,12 @@ impl YieldToken {
 // Implement standard token interface
 #[contractimpl]
 impl TokenInterface for YieldToken {
-    fn allowance(env: Env, from: Address, spender: Address) -> i128 {
+    fn allowance(_env: Env, _from: Address, _spender: Address) -> i128 {
         // Not implementing allowance for this rebasing token
         0
     }
 
-    fn approve(env: Env, from: Address, spender: Address, amount: i128, expiration_ledger: u32) {
+    fn approve(_env: Env, _from: Address, _spender: Address, _amount: i128, _expiration_ledger: u32) {
         // Not implementing approve for this rebasing token
         panic!("Approve not supported for rebasing yield token");
     }
@@ -262,7 +262,7 @@ impl TokenInterface for YieldToken {
         log!(&env, "Transferred {} from {} to {}", amount, from, to);
     }
 
-    fn transfer_from(env: Env, spender: Address, from: Address, to: Address, amount: i128) {
+    fn transfer_from(_env: Env, _spender: Address, _from: Address, _to: Address, _amount: i128) {
         // Not implementing transfer_from for this rebasing token
         panic!("TransferFrom not supported for rebasing yield token");
     }
@@ -289,12 +289,12 @@ impl TokenInterface for YieldToken {
             .set(&TOTAL_SUPPLY, &(total_supply - amount));
     }
 
-    fn burn_from(env: Env, spender: Address, from: Address, amount: i128) {
+    fn burn_from(_env: Env, _spender: Address, _from: Address, _amount: i128) {
         // Not implementing burn_from for this rebasing token
         panic!("BurnFrom not supported for rebasing yield token");
     }
 
-    fn decimals(env: Env) -> u32 {
+    fn decimals(_env: Env) -> u32 {
         6 // USDC-compatible decimals
     }
 
