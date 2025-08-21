@@ -1,10 +1,11 @@
 #![no_std]
 use shared::{
-    CommitteeMember, ExpertiseArea, GovernanceProposal, LoanProposal, ProposalStatus,
-    ProtocolParameter, TradeParams, REQUIRED_COMMITTEE_APPROVALS, TOTAL_COMMITTEE_SIZE,
+    CommitteeMember, GovernanceProposal, LoanProposal, ProposalStatus, ProtocolParameter,
+    TradeParams, REQUIRED_COMMITTEE_APPROVALS, TOTAL_COMMITTEE_SIZE,
 };
 use soroban_sdk::{
-    contract, contractimpl, log, symbol_short, Address, BytesN, Env, IntoVal, Symbol, Vec,
+    contract, contractimpl, log, symbol_short, xdr::ToXdr, Address, BytesN, Env, IntoVal, Symbol,
+    Vec,
 };
 
 // Storage Keys
@@ -69,19 +70,18 @@ impl Governance {
         duration_days: u64,
     ) -> BytesN<32> {
         proposer.require_auth();
-
-        // Verify proposer is committee member
         Self::verify_committee_member(&env, &proposer);
-
-        // Generate proposal ID using a simpler approach
+        // Generate proposal ID using serialization
         let mut proposal_bytes = soroban_sdk::Bytes::new(&env);
-        proposal_bytes.extend_from_array(&borrower.to_xdr(&env));
+        let borrower_xdr = borrower.clone().to_xdr(&env);
+        for b in borrower_xdr.iter() {
+            proposal_bytes.push_back(b);
+        }
         proposal_bytes.extend_from_array(&loan_amount.to_be_bytes());
         proposal_bytes.extend_from_array(&env.ledger().timestamp().to_be_bytes());
-        let proposal_id = env.crypto().sha256(&proposal_bytes).into();
-
+        let proposal_id: BytesN<32> = env.crypto().sha256(&proposal_bytes).into();
         let proposal = LoanProposal {
-            id: proposal_id,
+            id: proposal_id.clone(),
             borrower,
             amount: loan_amount,
             collateral: collateral_asset,
@@ -91,10 +91,9 @@ impl Governance {
             status: ProposalStatus::Pending,
             created_at: env.ledger().timestamp(),
         };
-
         env.storage()
             .persistent()
-            .set(&(LOAN_PROPOSALS.clone(), proposal_id), &proposal);
+            .set(&(LOAN_PROPOSALS.clone(), proposal_id.clone()), &proposal);
 
         log!(
             &env,
@@ -111,39 +110,31 @@ impl Governance {
     /// Approve a loan proposal (committee members only)
     pub fn approve_loan(env: Env, proposal_id: BytesN<32>, approver: Address) {
         approver.require_auth();
-
-        // Verify approver is committee member
         Self::verify_committee_member(&env, &approver);
-
         let mut proposal: LoanProposal = env
             .storage()
             .persistent()
-            .get(&(LOAN_PROPOSALS.clone(), proposal_id))
+            .get(&(LOAN_PROPOSALS.clone(), proposal_id.clone()))
             .unwrap_or_else(|| panic!("Loan proposal not found"));
-
         if proposal.status != ProposalStatus::Pending {
             panic!("Proposal is not in pending status");
         }
-
-        // Check if already approved by this member
-        let approval_key = (Symbol::new(&env, "approval"), proposal_id, approver.clone());
+        let approval_key = (
+            Symbol::new(&env, "approval"),
+            proposal_id.clone(),
+            approver.clone(),
+        );
         if env.storage().persistent().has(&approval_key) {
             panic!("Member has already approved this proposal");
         }
-
-        // Record approval
         env.storage().persistent().set(&approval_key, &true);
         proposal.approvals += 1;
-
-        // Check if enough approvals
         if proposal.approvals >= REQUIRED_COMMITTEE_APPROVALS {
             proposal.status = ProposalStatus::Approved;
         }
-
         env.storage()
             .persistent()
-            .set(&(LOAN_PROPOSALS.clone(), proposal_id), &proposal);
-
+            .set(&(LOAN_PROPOSALS.clone(), proposal_id.clone()), &proposal);
         log!(
             &env,
             "Loan proposal {} approved by {}. Approvals: {}/{}",
@@ -157,20 +148,15 @@ impl Governance {
     /// Execute an approved loan
     pub fn execute_loan(env: Env, executor: Address, proposal_id: BytesN<32>) {
         executor.require_auth();
-
-        // Verify executor is committee member
         Self::verify_committee_member(&env, &executor);
-
         let mut proposal: LoanProposal = env
             .storage()
             .persistent()
-            .get(&(LOAN_PROPOSALS.clone(), proposal_id))
+            .get(&(LOAN_PROPOSALS.clone(), proposal_id.clone()))
             .unwrap_or_else(|| panic!("Loan proposal not found"));
-
         if proposal.status != ProposalStatus::Approved {
             panic!("Proposal must be approved before execution");
         }
-
         // TODO: Implement actual loan execution logic
         // This would involve:
         // 1. Verifying collateral with coffee collateral contract
@@ -180,8 +166,7 @@ impl Governance {
         proposal.status = ProposalStatus::Executed;
         env.storage()
             .persistent()
-            .set(&(LOAN_PROPOSALS.clone(), proposal_id), &proposal);
-
+            .set(&(LOAN_PROPOSALS.clone(), proposal_id.clone()), &proposal);
         log!(
             &env,
             "Loan proposal {} executed by {}. Amount: ${} to borrower: {}",
@@ -199,26 +184,20 @@ impl Governance {
         trade_params: TradeParams,
     ) -> BytesN<32> {
         proposer.require_auth();
-
-        // Verify proposer is committee member
         Self::verify_committee_member(&env, &proposer);
-
-        // Generate trade ID
-        let trade_id = env
-            .crypto()
-            .sha256(
-                &(
-                    trade_params.asset_in.clone(),
-                    trade_params.amount_in,
-                    env.ledger().timestamp(),
-                )
-                    .into_val(&env),
-            )
-            .into();
+        // Generate trade ID using serialization
+        let mut trade_bytes = soroban_sdk::Bytes::new(&env);
+        let asset_in_xdr = trade_params.asset_in.clone().to_xdr(&env);
+        for b in asset_in_xdr.iter() {
+            trade_bytes.push_back(b);
+        }
+        trade_bytes.extend_from_array(&trade_params.amount_in.to_be_bytes());
+        trade_bytes.extend_from_array(&env.ledger().timestamp().to_be_bytes());
+        let trade_id: BytesN<32> = env.crypto().sha256(&trade_bytes).into();
 
         env.storage()
             .persistent()
-            .set(&(TRADE_PROPOSALS.clone(), trade_id), &trade_params);
+            .set(&(TRADE_PROPOSALS.clone(), trade_id.clone()), &trade_params);
 
         log!(
             &env,
@@ -236,21 +215,15 @@ impl Governance {
     /// Execute a trade (committee members only)
     pub fn execute_trade(env: Env, executor: Address, trade_id: BytesN<32>) {
         executor.require_auth();
-
-        // Verify executor is committee member
         Self::verify_committee_member(&env, &executor);
-
         let trade_params: TradeParams = env
             .storage()
             .persistent()
-            .get(&(TRADE_PROPOSALS.clone(), trade_id))
+            .get(&(TRADE_PROPOSALS.clone(), trade_id.clone()))
             .unwrap_or_else(|| panic!("Trade proposal not found"));
-
-        // Check deadline
         if env.ledger().timestamp() > trade_params.deadline {
             panic!("Trade proposal has expired");
         }
-
         // TODO: Implement actual trade execution logic
         // This would involve:
         // 1. Calling external DEX or trading platform
@@ -260,8 +233,7 @@ impl Governance {
         // Remove executed trade
         env.storage()
             .persistent()
-            .remove(&(TRADE_PROPOSALS.clone(), trade_id));
-
+            .remove(&(TRADE_PROPOSALS.clone(), trade_id.clone()));
         log!(&env, "Trade {} executed by {}", trade_id, executor);
     }
 
@@ -273,34 +245,26 @@ impl Governance {
         new_value: u128,
     ) -> BytesN<32> {
         proposer.require_auth();
-
-        // Check minimum token requirement
         let min_tokens: u128 = env.storage().instance().get(&MIN_PROPOSAL_TOKENS).unwrap();
         let proposer_balance = Self::get_voting_power(&env, &proposer);
-
         if proposer_balance < min_tokens {
             panic!(
                 "Insufficient tokens to propose. Required: {}, Have: {}",
                 min_tokens, proposer_balance
             );
         }
-
-        // Generate proposal ID
-        let proposal_id = env
-            .crypto()
-            .sha256(
-                &(
-                    proposer.clone(),
-                    parameter.clone(),
-                    new_value,
-                    env.ledger().timestamp(),
-                )
-                    .into_val(&env),
-            )
-            .into();
-
+        // Generate proposal ID using serialization
+        let mut prop_bytes = soroban_sdk::Bytes::new(&env);
+        let proposer_xdr = proposer.clone().to_xdr(&env);
+        for b in proposer_xdr.iter() {
+            prop_bytes.push_back(b);
+        }
+        prop_bytes.extend_from_array(&(parameter.clone() as u32).to_be_bytes());
+        prop_bytes.extend_from_array(&new_value.to_be_bytes());
+        prop_bytes.extend_from_array(&env.ledger().timestamp().to_be_bytes());
+        let proposal_id: BytesN<32> = env.crypto().sha256(&prop_bytes).into();
         let proposal = GovernanceProposal {
-            id: proposal_id,
+            id: proposal_id.clone(),
             proposer,
             parameter,
             new_value,
@@ -309,10 +273,10 @@ impl Governance {
             voting_deadline: env.ledger().timestamp() + (7 * 24 * 60 * 60), // 7 days
             status: ProposalStatus::Pending,
         };
-
-        env.storage()
-            .persistent()
-            .set(&(GOVERNANCE_PROPOSALS.clone(), proposal_id), &proposal);
+        env.storage().persistent().set(
+            &(GOVERNANCE_PROPOSALS.clone(), proposal_id.clone()),
+            &proposal,
+        );
 
         log!(
             &env,
@@ -328,42 +292,36 @@ impl Governance {
     /// DAO Governance: Vote on parameter change
     pub fn vote_on_proposal(env: Env, voter: Address, proposal_id: BytesN<32>, support: bool) {
         voter.require_auth();
-
         let mut proposal: GovernanceProposal = env
             .storage()
             .persistent()
-            .get(&(GOVERNANCE_PROPOSALS.clone(), proposal_id))
+            .get(&(GOVERNANCE_PROPOSALS.clone(), proposal_id.clone()))
             .unwrap_or_else(|| panic!("Governance proposal not found"));
-
         if env.ledger().timestamp() > proposal.voting_deadline {
             panic!("Voting period has ended");
         }
-
         if proposal.status != ProposalStatus::Pending {
             panic!("Proposal is not active for voting");
         }
-
-        // Check if already voted
-        let vote_key = (Symbol::new(&env, "vote"), proposal_id, voter.clone());
+        let vote_key = (
+            Symbol::new(&env, "vote"),
+            proposal_id.clone(),
+            voter.clone(),
+        );
         if env.storage().persistent().has(&vote_key) {
             panic!("User has already voted on this proposal");
         }
-
         let voting_power = Self::get_voting_power(&env, &voter);
-
         if support {
             proposal.votes_for += voting_power;
         } else {
             proposal.votes_against += voting_power;
         }
-
-        // Record vote
         env.storage().persistent().set(&vote_key, &support);
-
-        env.storage()
-            .persistent()
-            .set(&(GOVERNANCE_PROPOSALS.clone(), proposal_id), &proposal);
-
+        env.storage().persistent().set(
+            &(GOVERNANCE_PROPOSALS.clone(), proposal_id.clone()),
+            &proposal,
+        );
         log!(
             &env,
             "User {} voted {} on proposal {} with {} voting power",
@@ -377,33 +335,30 @@ impl Governance {
     /// Execute approved governance proposal
     pub fn execute_governance_proposal(env: Env, executor: Address, proposal_id: BytesN<32>) {
         executor.require_auth();
-
         let mut proposal: GovernanceProposal = env
             .storage()
             .persistent()
-            .get(&(GOVERNANCE_PROPOSALS.clone(), proposal_id))
+            .get(&(GOVERNANCE_PROPOSALS.clone(), proposal_id.clone()))
             .unwrap_or_else(|| panic!("Governance proposal not found"));
-
         if env.ledger().timestamp() <= proposal.voting_deadline {
             panic!("Voting period has not ended");
         }
-
         if proposal.votes_for <= proposal.votes_against {
             proposal.status = ProposalStatus::Rejected;
-            env.storage()
-                .persistent()
-                .set(&(GOVERNANCE_PROPOSALS.clone(), proposal_id), &proposal);
+            env.storage().persistent().set(
+                &(GOVERNANCE_PROPOSALS.clone(), proposal_id.clone()),
+                &proposal,
+            );
             panic!("Proposal was rejected by vote");
         }
-
         // TODO: Implement actual parameter update logic
         // This would involve updating the relevant protocol parameters
 
         proposal.status = ProposalStatus::Executed;
-        env.storage()
-            .persistent()
-            .set(&(GOVERNANCE_PROPOSALS.clone(), proposal_id), &proposal);
-
+        env.storage().persistent().set(
+            &(GOVERNANCE_PROPOSALS.clone(), proposal_id.clone()),
+            &proposal,
+        );
         log!(
             &env,
             "Governance proposal {} executed. Parameter {:?} updated to {}",

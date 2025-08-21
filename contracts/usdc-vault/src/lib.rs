@@ -3,7 +3,7 @@ use soroban_sdk::{
     contract, contractimpl, log, symbol_short, Address, Env, Symbol, IntoVal
 };
 use soroban_sdk::token::TokenClient;
-use shared::{DepositInfo, LockPeriod, VaultType, USDC_ASSET, STORAGE_INSTANCE_PERSISTENT};
+use shared::{DepositInfo, LockPeriod, VaultType};
 
 // Storage Keys
 const DEPOSIT: Symbol = symbol_short!("DEPOSIT");
@@ -79,7 +79,7 @@ impl USDCVault {
         let yield_token_contract: Address = env.storage().instance().get(&YIELD_TOKEN).unwrap();
         
         // Call yield token contract to mint tokens
-        env.invoke_contract(
+        env.invoke_contract::<()>(
             &yield_token_contract,
             &Symbol::new(&env, "mint_for_deposit"),
             (
@@ -90,8 +90,7 @@ impl USDCVault {
                 yield_rate,
             ).into_val(&env),
         );
-
-        log!(
+                log!(
             &env,
             "User {} deposited {} USDC with {:?} lock period. Unlock time: {}",
             user,
@@ -124,7 +123,7 @@ impl USDCVault {
         let yield_token_contract: Address = env.storage().instance().get(&YIELD_TOKEN).unwrap();
         
         // Compound interest first
-        env.invoke_contract(
+        env.invoke_contract::<()>(
             &yield_token_contract,
             &Symbol::new(&env, "compound_interest"),
             (user.clone(),).into_val(&env),
@@ -140,7 +139,7 @@ impl USDCVault {
         let withdrawal_amount = final_amount as u128;
 
         // Burn yield tokens
-        env.invoke_contract(
+        env.invoke_contract::<()>(
             &yield_token_contract,
             &Symbol::new(&env, "burn_for_withdrawal"),
             (
@@ -198,7 +197,7 @@ impl USDCVault {
     }
 
     /// Calculate yield rate based on lock period
-    pub fn calculate_yield_rate(env: Env, lock_period: LockPeriod) -> u128 {
+    pub fn calculate_yield_rate(_env: Env, lock_period: LockPeriod) -> u128 {
         let base_rate = 500u128; // 5% base annual rate in basis points
         
         match lock_period {
